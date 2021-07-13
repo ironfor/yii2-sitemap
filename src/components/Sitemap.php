@@ -340,7 +340,8 @@ class Sitemap extends Component
                 $this->optionalAttributes
             ) as $attribute
         ) {
-            $str .= sprintf("\t<%s>%s</%1\$s>", $attribute, call_user_func([$entity, 'getSitemap' . $attribute])) . PHP_EOL;
+            if ( !empty(call_user_func([$entity, 'getSitemap' . $attribute])) )
+                $str .= sprintf("\t<%s>%s</%1\$s>", $attribute, call_user_func([$entity, 'getSitemap' . $attribute])) . PHP_EOL;
         }
 
         $str .= '</url>';
