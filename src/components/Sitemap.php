@@ -12,6 +12,13 @@ use yii\base\Exception;
 class Sitemap extends Component
 {
     /**
+     * Use gzip compression?
+     *
+     * @var boolean
+     */
+    public $gzipped = true;
+
+    /**
      * Max count of urls in one sitemap file.
      *
      * @var int
@@ -103,21 +110,22 @@ class Sitemap extends Component
         $lastmod = $objDateTime->format(\DateTime::W3C);
 
         $baseUrl = \Yii::$app->urlManager->baseUrl;
-        $hostInfo = \Yii::$app->urlManager->hostInfo;   
-        
+        $hostInfo = \Yii::$app->urlManager->hostInfo;
+        $gzip = $this->gzipped ? '.gz' : '';
+
         foreach ($this->generatedFiles as $fileName) {
             fwrite(
                 $this->handle,
                 PHP_EOL .
                 '<sitemap>' . PHP_EOL .
-                "\t" . '<loc>' . $hostInfo . $baseUrl . '/' . $fileName . '.gz' . '</loc>' . PHP_EOL .
+                "\t" . '<loc>' . $hostInfo . $baseUrl . '/' . $fileName . $gzip . '</loc>' . PHP_EOL .
                 "\t" . '<lastmod>' . $lastmod . '</lastmod>' . PHP_EOL .
                 '</sitemap>'
             );
         }
         fwrite($this->handle, PHP_EOL . '</sitemapindex>');
         fclose($this->handle);
-        $this->gzipFile();
+        if($this->gzipped) $this->gzipFile();
     }
 
     /**
@@ -250,7 +258,7 @@ class Sitemap extends Component
 
         if (is_resource($this->handle)) {
             $this->closeFile();
-            $this->gzipFile();
+            if($this->gzipped) $this->gzipFile();
         }
 
         $this->createIndexFile();
@@ -348,7 +356,7 @@ class Sitemap extends Component
 
         if ($this->isLimitExceeded(strlen($str))) {
             $this->closeFile();
-            $this->gzipFile();
+            if($this->gzipped) $this->gzipFile();
             $this->beginFile();
         }
 
