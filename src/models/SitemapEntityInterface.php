@@ -28,6 +28,19 @@ interface SitemapEntityInterface
      */
     public function getSitemapPriority();
 
+    /**
+     * Get image value for sitemap file.
+     *
+     * @return string
+     */
+    public function getSitemapImage();
+
+    /**
+     * Get image value for sitemap file.
+     *
+     * @return string
+     */
+    public function getSitemapVideo();
 
     /**
      * Get loc value for sitemap file.

@@ -37,7 +37,7 @@ class Sitemap extends Component
      *
      * @var string[]
      */
-    public $optionalAttributes = ['changefreq', 'lastmod', 'priority'];
+    public $optionalAttributes = ['changefreq', 'lastmod', 'priority', 'image', 'video'];
 
     /**
      * Path to current sitemap file.
@@ -341,15 +341,15 @@ class Sitemap extends Component
     protected function writeEntity($entity, $sitemapName)
     {
         $str = PHP_EOL . '<url>' . PHP_EOL;
-
         foreach (
             array_merge(
                 ['loc'],
                 $this->optionalAttributes
             ) as $attribute
         ) {
+            $tag = ($attribute == 'image' || $attribute == 'video') ? $attribute . ':' . $attribute : $attribute;
             if ( !empty(call_user_func([$entity, 'getSitemap' . $attribute])) )
-                $str .= sprintf("\t<%s>%s</%1\$s>", $attribute, call_user_func([$entity, 'getSitemap' . $attribute])) . PHP_EOL;
+                $str .= sprintf("\t<%s>%s</%1\$s>", $tag, call_user_func([$entity, 'getSitemap' . $attribute])) . PHP_EOL;
         }
 
         $str .= '</url>';
