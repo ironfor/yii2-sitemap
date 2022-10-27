@@ -19,6 +19,13 @@ class Sitemap extends Component
     public $gzipped = true;
 
     /**
+     * Name of sitemap files.
+     *
+     * @var string
+     */
+    public $sitemapName;
+
+    /**
      * Max count of urls in one sitemap file.
      *
      * @var int
@@ -134,7 +141,7 @@ class Sitemap extends Component
     protected function updateSitemaps()
     {
         // delete old sitemap files
-        foreach (glob("{$this->sitemapDirectory}/sitemap*.xml*") as $filePath) {
+        foreach (glob("{$this->sitemapDirectory}/sitemap_' . $this->sitemapName . '*.xml*") as $filePath) {
             unlink($filePath);
         }
         // rename new files (without '_')
@@ -152,7 +159,7 @@ class Sitemap extends Component
         ++$this->fileIndex;
         $this->urlCount = 0;
 
-        $fileName = 'sitemap' . $this->fileIndex . '.xml';
+        $fileName = 'sitemap_' . $this->sitemapName . '_' . $this->fileIndex . '.xml';
         $this->path = $this->sitemapDirectory . '/_' . $fileName;
         $this->generatedFiles[] = $fileName;
 
@@ -225,12 +232,13 @@ class Sitemap extends Component
      * @return $this
      * @throws Exception
      */
-    public function addModel($model, $db = null)
+    public function addModel($model, $sitemapName, $db = null)
     {
         if (!((new $model()) instanceof SitemapEntityInterface)) {
             throw new Exception("Model $model does not implement interface SitemapEntity");
         }
         $this->addDataSource($model::getSitemapDataSource(), $db);
+        $this->sitemapName = $sitemapName;
         return $this;
     }
 
