@@ -19,13 +19,6 @@ class Sitemap extends Component
     public $gzipped = true;
 
     /**
-     * Name of sitemap files.
-     *
-     * @var string
-     */
-    public $sitemapName;
-
-    /**
      * Max count of urls in one sitemap file.
      *
      * @var int
@@ -138,10 +131,10 @@ class Sitemap extends Component
     /**
      * Update sitemap file.
      */
-    protected function updateSitemaps()
+    protected function updateSitemaps($sitemapName)
     {
         // delete old sitemap files
-        foreach (glob("{$this->sitemapDirectory}/sitemap_' . $this->sitemapName . '*.xml*") as $filePath) {
+        foreach (glob("{$this->sitemapDirectory}/sitemap_' . $sitemapName . '*.xml*") as $filePath) {
             unlink($filePath);
         }
         // rename new files (without '_')
@@ -154,12 +147,12 @@ class Sitemap extends Component
     /**
      * Write header to sitemap file.
      */
-    protected function beginFile()
+    protected function beginFile($sitemapName)
     {
         ++$this->fileIndex;
         $this->urlCount = 0;
 
-        $fileName = 'sitemap_' . $this->sitemapName . '_' . $this->fileIndex . '.xml';
+        $fileName = 'sitemap_' . $sitemapName . '_' . $this->fileIndex . '.xml';
         $this->path = $this->sitemapDirectory . '/_' . $fileName;
         $this->generatedFiles[] = $fileName;
 
@@ -215,10 +208,11 @@ class Sitemap extends Component
      *
      * @param \yii\db\ActiveQuery $dataSource
      */
-    public function addDataSource($dataSource, $db = null)
+    public function addDataSource($dataSource, $sitemapName, $db = null)
     {
         $this->dataSources[] = [
             'query' => $dataSource,
+            'sitemapName' => $sitemapName,
             'connection' => $db
         ];
     }
@@ -237,8 +231,7 @@ class Sitemap extends Component
         if (!((new $model()) instanceof SitemapEntityInterface)) {
             throw new Exception("Model $model does not implement interface SitemapEntity");
         }
-        $this->addDataSource($model::getSitemapDataSource(), $db);
-        $this->sitemapName = $sitemapName;
+        $this->addDataSource($model::getSitemapDataSource(), $sitemapName, $db);
         return $this;
     }
 
@@ -247,10 +240,9 @@ class Sitemap extends Component
      */
     public function create()
     {
-        $this->fileIndex = 0;
-        $this->beginFile();
-
         foreach ($this->dataSources as $dataSource) {
+            $this->fileIndex = 0;
+            $this->beginFile($dataSource['sitemapName']);
             /** @var ActiveQuery $query */
             $query = $dataSource['query'];
             /** @var Connection  $connection */
@@ -258,19 +250,19 @@ class Sitemap extends Component
             foreach ($query->batch(100, $connection) as $entities) {
                 foreach ($entities as $entity) {
                     if (!$this->isDisallowUrl($entity->getSitemapLoc())) {
-                        $this->writeEntity($entity);
+                        $this->writeEntity($entity, $dataSource['sitemapName']);
                     }
                 }
             }
+            if (is_resource($this->handle)) {
+                $this->closeFile();
+                if($this->gzipped) $this->gzipFile();
+            }
+            $this->createIndexFile();
+            $this->updateSitemaps($dataSource['sitemapName']);
         }
 
-        if (is_resource($this->handle)) {
-            $this->closeFile();
-            if($this->gzipped) $this->gzipFile();
-        }
 
-        $this->createIndexFile();
-        $this->updateSitemaps();
     }
 
     /**
@@ -346,7 +338,7 @@ class Sitemap extends Component
      *
      * @param SitemapEntityInterface $entity
      */
-    protected function writeEntity($entity)
+    protected function writeEntity($entity, $sitemapName)
     {
         $str = PHP_EOL . '<url>' . PHP_EOL;
 
@@ -365,7 +357,7 @@ class Sitemap extends Component
         if ($this->isLimitExceeded(strlen($str))) {
             $this->closeFile();
             if($this->gzipped) $this->gzipFile();
-            $this->beginFile();
+            $this->beginFile($sitemapName);
         }
 
         fwrite($this->handle, $str);
